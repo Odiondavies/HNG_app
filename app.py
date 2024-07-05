@@ -5,16 +5,22 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
 
+IPINFO_TOKEN = '725d6d9de86576'
+OPENWEATHERMAP_API_KEY = 'a53a8066ad9b9ec896f571174cc52a25'
+
 @app.route("/api/hello")
 def greeting():
     try:
+        # Get client IP address, considering proxies and load balancers
         client_ip = request.headers.get('X-Forwarded-For', request.remote_addr).split(',')[0].strip()
         
         visitor_name = request.args.get("visitor_name", default='Guest', type=str)
+        visitor_name = visitor_name.strip('"')  # Remove double quotes from visitor_name
+        
         client_info = get_client_city(client_ip)
-        city = client_info.get("city")
-        lat = client_info.get("lat")
-        lon = client_info.get('lon')
+        city = client_info.get("city", "New York")
+        lat = client_info.get("lat", 40.7128)
+        lon = client_info.get('lon', -74.0060)
         
         if lat and lon:
             weather_info = get_weather_info(lat, lon)
@@ -41,7 +47,7 @@ def get_client_city(ip_address):
     try:
         url = f"https://ipinfo.io/{ip_address}/json"
         headers = {
-            "Authorization": "Bearer 725d6d9de86576"  # Update with your actual IPINFO_TOKEN
+            "Authorization": f"Bearer {IPINFO_TOKEN}"
         }
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
@@ -59,11 +65,11 @@ def get_client_city(ip_address):
 
 def get_weather_info(latitude, longitude):
     try:
-        url = "http://api.openweathermap.org/data/2.5/weather"
+        url = f"http://api.openweathermap.org/data/2.5/weather"
         params = {
             "lat": latitude,
             "lon": longitude,
-            "appid": "a53a8066ad9b9ec896f571174cc52a25",  # Update with your actual OPENWEATHERMAP_API_KEY
+            "appid": OPENWEATHERMAP_API_KEY,
             "units": "metric"
         }
         response = requests.get(url, params=params)
@@ -76,3 +82,4 @@ def get_weather_info(latitude, longitude):
 
 if __name__ == "__main__":
     app.run(debug=True)
+            
